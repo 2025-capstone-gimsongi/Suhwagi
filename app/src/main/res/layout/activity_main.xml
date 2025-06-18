@@ -51,7 +51,7 @@
                 android:textSize="14dp" />
 
             <com.google.android.material.button.MaterialButton
-                android:id="@+id/button_new_call"
+                android:id="@+id/button_create_call"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="10dp"
@@ -69,7 +69,7 @@
                 android:textColor="?attr/colorPrimary" />
 
             <com.google.android.material.button.MaterialButton
-                android:id="@+id/button_offline_mode"
+                android:id="@+id/button_camera_only"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:backgroundTint="#f1f4f6"

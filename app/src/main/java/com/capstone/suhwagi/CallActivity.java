@@ -1,6 +1,8 @@
 package com.capstone.suhwagi;
 
 import android.Manifest;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
@@ -69,7 +71,17 @@ public class CallActivity extends AppCompatActivity {
         setContentView(binding.getRoot());
 
         if (!hasPermissions()) {
-            finish();
+            new AlertDialog.Builder(this)
+                .setTitle(R.string.app_name)
+                .setMessage("필수 권한을 허용해 주세요.")
+                .setPositiveButton("확인", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        finish();
+                    }
+                })
+                .setCancelable(false)
+                .show();
             return;
         }
 

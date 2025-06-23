@@ -13,6 +13,7 @@ import androidx.core.content.ContextCompat;
 import com.capstone.suhwagi.databinding.ActivityCallBinding;
 import com.capstone.suhwagi.observer.CreateSdpObserver;
 import com.capstone.suhwagi.observer.SetRemoteSdpObserver;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -58,7 +59,7 @@ public class CallActivity extends AppCompatActivity {
     private VideoTrack remoteVideoTrack;
     private AudioSource audioSource;
 
-    private ValueEventListener answerListener;
+    private ValueEventListener sdpListener;
     private ChildEventListener iceListener;
     private final List<IceCandidate> pendingCandidates = new ArrayList<>();
     private final AtomicBoolean remoteSdpSet = new AtomicBoolean(false);
@@ -141,7 +142,7 @@ public class CallActivity extends AppCompatActivity {
         connection = createPeerConnection(true);
         addLocalStream();
 
-        answerListener = new ValueEventListener() {
+        sdpListener = new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot snapshot) {
                 String answer = snapshot.getValue(String.class);
@@ -158,7 +159,7 @@ public class CallActivity extends AppCompatActivity {
             @Override public void onCancelled(DatabaseError error) {}
         };
         connection.createOffer(
-            new CreateSdpObserver(connection, call, pendingCandidates, remoteSdpSet, answerListener),
+            new CreateSdpObserver(connection, call, pendingCandidates, remoteSdpSet, sdpListener),
             new MediaConstraints()
         );
     }
@@ -167,11 +168,13 @@ public class CallActivity extends AppCompatActivity {
         connection = createPeerConnection(false);
         addLocalStream();
 
-        call.child("offer").addListenerForSingleValueEvent(new ValueEventListener() {
+        sdpListener = new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot snapshot) {
                 String offer = snapshot.getValue(String.class);
                 if (offer != null) {
+                    call.child("offer").removeEventListener(this);
+
                     connection.setRemoteDescription(
                         new SetRemoteSdpObserver(connection, call, pendingCandidates, remoteSdpSet),
                         new SessionDescription(SessionDescription.Type.OFFER, offer)
@@ -180,7 +183,8 @@ public class CallActivity extends AppCompatActivity {
             }
 
             @Override public void onCancelled(DatabaseError error) {}
-        });
+        };
+        call.child("offer").addValueEventListener(sdpListener);
     }
 
     private PeerConnection createPeerConnection(boolean isCaller) {
@@ -206,6 +210,8 @@ public class CallActivity extends AppCompatActivity {
         config.sdpSemantics = PeerConnection.SdpSemantics.PLAN_B;
 
         PeerConnection.Observer observer = new PeerConnection.Observer() {
+            private boolean iceCompleted = false;
+
             @Override
             public void onIceCandidate(IceCandidate candidate) {
                 Map<String, Object> map = new HashMap<>();
@@ -222,6 +228,13 @@ public class CallActivity extends AppCompatActivity {
                 if (newState == PeerConnection.IceConnectionState.COMPLETED) {
                     call.child(isCaller ? "calleeCandidates" : "callerCandidates")
                         .removeEventListener(iceListener);
+
+                    call.removeValue().addOnSuccessListener(new OnSuccessListener<Void>() {
+                        @Override
+                        public void onSuccess(Void aVoid) {
+                            iceCompleted = true;
+                        }
+                    });
                 } else if (newState == PeerConnection.IceConnectionState.DISCONNECTED) {
                     runOnUiThread(() -> binding.surfaceRemote.clearImage());
                 }
@@ -235,12 +248,31 @@ public class CallActivity extends AppCompatActivity {
                 }
             }
 
+            @Override
+            public void onRenegotiationNeeded() {
+                if (!iceCompleted) return;
+
+                iceCompleted = false;
+                remoteSdpSet.set(false);
+
+                if (isCaller) {
+                    MediaConstraints constraints = new MediaConstraints();
+                    constraints.mandatory.add(new MediaConstraints.KeyValuePair("IceRestart", "true"));
+
+                    connection.createOffer(
+                        new CreateSdpObserver(connection, call, pendingCandidates, remoteSdpSet, sdpListener),
+                        constraints
+                    );
+                } else {
+                    call.child("offer").addValueEventListener(sdpListener);
+                }
+            }
+
             @Override public void onDataChannel(DataChannel dataChannel) {}
             @Override public void onIceCandidatesRemoved(IceCandidate[] iceCandidates) {}
             @Override public void onIceConnectionReceivingChange(boolean receiving) {}
             @Override public void onIceGatheringChange(PeerConnection.IceGatheringState newState) {}
             @Override public void onRemoveStream(MediaStream stream) {}
-            @Override public void onRenegotiationNeeded() {}
             @Override public void onSignalingChange(PeerConnection.SignalingState newState) {}
         };
 
@@ -303,8 +335,9 @@ public class CallActivity extends AppCompatActivity {
         super.onDestroy();
 
         if (call != null) {
-            if (answerListener != null) {
-                call.child("answer").removeEventListener(answerListener);
+            if (sdpListener != null) {
+                call.child("answer").removeEventListener(sdpListener);
+                call.child("offer").removeEventListener(sdpListener);
             }
             if (iceListener != null) {
                 call.child("calleeCandidates").removeEventListener(iceListener);

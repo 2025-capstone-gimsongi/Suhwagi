@@ -2,7 +2,6 @@ package com.capstone.suhwagi;
 
 import android.Manifest;
 import android.app.AlertDialog;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
@@ -13,7 +12,6 @@ import androidx.core.content.ContextCompat;
 import com.capstone.suhwagi.databinding.ActivityCallBinding;
 import com.capstone.suhwagi.observer.CreateSdpObserver;
 import com.capstone.suhwagi.observer.SetRemoteSdpObserver;
-import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -75,12 +73,7 @@ public class CallActivity extends AppCompatActivity {
             new AlertDialog.Builder(this)
                 .setTitle(R.string.app_name)
                 .setMessage("필수 권한을 허용해 주세요.")
-                .setPositiveButton("확인", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        finish();
-                    }
-                })
+                .setPositiveButton("확인", (dialog, which) -> finish())
                 .setCancelable(false)
                 .show();
             return;
@@ -229,12 +222,7 @@ public class CallActivity extends AppCompatActivity {
                     call.child(isCaller ? "calleeCandidates" : "callerCandidates")
                         .removeEventListener(iceListener);
 
-                    call.removeValue().addOnSuccessListener(new OnSuccessListener<Void>() {
-                        @Override
-                        public void onSuccess(Void aVoid) {
-                            iceCompleted = true;
-                        }
-                    });
+                    call.removeValue().addOnSuccessListener(aVoid -> iceCompleted = true);
                 } else if (newState == PeerConnection.IceConnectionState.DISCONNECTED) {
                     runOnUiThread(() -> binding.surfaceRemote.clearImage());
                 }

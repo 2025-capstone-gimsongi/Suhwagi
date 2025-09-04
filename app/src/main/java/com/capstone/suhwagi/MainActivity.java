@@ -18,11 +18,6 @@ import androidx.core.content.ContextCompat;
 import com.capstone.suhwagi.databinding.ActivityMainBinding;
 import com.capstone.suhwagi.databinding.DialogCallBinding;
 import com.google.android.material.textfield.TextInputLayout;
-import com.google.firebase.database.DataSnapshot;
-import com.google.firebase.database.DatabaseError;
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -39,33 +34,27 @@ public class MainActivity extends AppCompatActivity {
 
         requestPermissions();
 
-        DatabaseReference calls = FirebaseDatabase.getInstance().getReference("calls");
-        binding.buttonCreateCall.setOnClickListener(v -> {
-            String id = calls.push().getKey();
-            if (id == null) {
-                Toast.makeText(getApplicationContext(), "ID 생성 실패", Toast.LENGTH_SHORT).show();
-                return;
-            }
+        binding.buttonDeafCall.setOnClickListener(v -> {
+            String roomName = "dev-room";
 
             DialogCallBinding callBinding = DialogCallBinding.inflate(getLayoutInflater());
-            callBinding.layoutCallId.setEndIconOnClickListener(view -> {
+            callBinding.layoutRoomName.setEndIconOnClickListener(view -> {
                 ClipboardManager manager = (ClipboardManager)getSystemService(Context.CLIPBOARD_SERVICE);
-                ClipData data = ClipData.newPlainText("id", callBinding.editCallId.getText());
+                ClipData data = ClipData.newPlainText("roomName", callBinding.editRoomName.getText());
                 manager.setPrimaryClip(data);
 
                 if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
                     Toast.makeText(getApplicationContext(), "클립보드에 복사되었습니다.", Toast.LENGTH_SHORT).show();
                 }
             });
-            callBinding.editCallId.setText(id);
+            callBinding.editRoomName.setText(roomName);
 
             new AlertDialog.Builder(MainActivity.this)
-                .setTitle("ID")
+                .setTitle("Room")
                 .setView(callBinding.getRoot())
                 .setPositiveButton("생성", (dialog, which) -> {
                     Intent intent = new Intent(MainActivity.this, CallActivity.class);
-                    intent.putExtra("isCaller", true);
-                    intent.putExtra("id", id);
+                    intent.putExtra("isDeaf", true);
 
                     startActivity(intent);
                 })
@@ -74,38 +63,22 @@ public class MainActivity extends AppCompatActivity {
                 .show();
         });
 
-        binding.buttonJoinCall.setOnClickListener(v -> {
+        binding.buttonHearingCall.setOnClickListener(v -> {
             DialogCallBinding callBinding = DialogCallBinding.inflate(getLayoutInflater());
-            callBinding.layoutCallId.setEndIconMode(TextInputLayout.END_ICON_NONE);
-            callBinding.editCallId.setEnabled(true);
+            callBinding.layoutRoomName.setEndIconMode(TextInputLayout.END_ICON_NONE);
+            callBinding.editRoomName.setText("dev-room");
 
             new AlertDialog.Builder(MainActivity.this)
-                .setTitle("ID")
+                .setTitle("Room")
                 .setView(callBinding.getRoot())
                 .setPositiveButton("참가", (dialog, which) -> {
-                    Toast toast = Toast.makeText(getApplicationContext(), "ID 확인 실패", Toast.LENGTH_SHORT);
-
-                    String id = callBinding.editCallId.getText().toString().trim();
-                    if (id.isEmpty()) {
-                        toast.show();
+                    String roomName = callBinding.editRoomName.getText().toString().trim();
+                    if (roomName.isEmpty()) {
+                        Toast.makeText(getApplicationContext(), "Room 확인 실패", Toast.LENGTH_SHORT).show();
                         return;
                     }
 
-                    calls.child(id).addListenerForSingleValueEvent(new ValueEventListener() {
-                        @Override
-                        public void onDataChange(DataSnapshot snapshot) {
-                            if (snapshot.exists()) {
-                                Intent intent = new Intent(MainActivity.this, CallActivity.class);
-                                intent.putExtra("id", id);
-
-                                startActivity(intent);
-                            } else {
-                                toast.show();
-                            }
-                        }
-
-                        @Override public void onCancelled(DatabaseError error) { toast.show(); }
-                    });
+                    startActivity(new Intent(MainActivity.this, CallActivity.class));
                 })
                 .setNegativeButton("취소", null)
                 .show();

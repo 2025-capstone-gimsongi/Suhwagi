@@ -51,7 +51,7 @@
                 android:textSize="14dp" />
 
             <com.google.android.material.button.MaterialButton
-                android:id="@+id/button_create_call"
+                android:id="@+id/button_deaf_call"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="10dp"
@@ -60,7 +60,7 @@
                 android:textColor="@android:color/white" />
 
             <com.google.android.material.button.MaterialButton
-                android:id="@+id/button_join_call"
+                android:id="@+id/button_hearing_call"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="10dp"
@@ -73,7 +73,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:backgroundTint="#f1f4f6"
-                android:text="오프라인"
+                android:text="카메라 번역"
                 android:textColor="?attr/colorPrimary" />
         </LinearLayout>
     </androidx.cardview.widget.CardView>

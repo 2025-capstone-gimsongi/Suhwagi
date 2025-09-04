@@ -7,7 +7,7 @@
     android:padding="8dp">
 
     <com.google.android.material.textfield.TextInputLayout
-        android:id="@+id/layout_call_id"
+        android:id="@+id/layout_room_name"
         style="?attr/textInputOutlinedDenseStyle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -17,7 +17,7 @@
         app:endIconDrawable="@drawable/ic_content_copy">
 
         <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/edit_call_id"
+            android:id="@+id/edit_room_name"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:enabled="false"

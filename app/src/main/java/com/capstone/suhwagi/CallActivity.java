@@ -5,6 +5,24 @@ import android.app.AlertDialog;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+import okhttp3.*;
+
+import com.google.mediapipe.tasks.vision.core.*;
+import com.google.mediapipe.tasks.vision.core.RunningMode;
+import com.google.mediapipe.tasks.vision.handlandmarker.*;
+import com.google.mediapipe.framework.image.BitmapImageBuilder;
+
+import org.webrtc.VideoFrame;
+import org.webrtc.VideoSink;
+
+import android.graphics.*;
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.Arrays;
+import java.time.Duration;
+
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 import androidx.lifecycle.LifecycleOwnerKt;
@@ -34,6 +52,28 @@ import kotlinx.coroutines.BuildersKt;
 import kotlinx.coroutines.CoroutineScope;
 import kotlinx.coroutines.CoroutineStart;
 import kotlinx.coroutines.Dispatchers;
+
+// === 서버 ===
+private static final String SERVER_BASE_URL = "https://your.server.com"; // 추후 수정 필요
+
+// === 시퀀스 스펙 ===
+private static final int SEQ_LEN = 30;
+private static final int FEAT_DIM = 126; // 2손*21점*xyz
+
+// 버퍼 & 전송레이트 제한
+private final Deque<float[]> seqBuffer = new ArrayDeque<>();
+private volatile long lastSentMs = 0L;
+
+// OkHttp 클라이언트
+private final OkHttpClient http = new OkHttpClient.Builder()
+        .callTimeout(Duration.ofSeconds(3))
+        .build();
+
+// Mediapipe
+private HandLandmarker handLandmarker;
+private java.util.concurrent.ExecutorService mpExecutor;
+private volatile boolean isRunningInference = false;
+
 
 public class CallActivity extends AppCompatActivity {
     private static final String URL = "ws://10.0.2.2:7880";
@@ -68,7 +108,61 @@ public class CallActivity extends AppCompatActivity {
         } else {
             joinRoom(HEARING);
         }
+
+        mpExecutor = java.util.concurrent.Executors.newSingleThreadExecutor();
+        initMediapipe();
+    }   
+
+    private void initMediapipe() {
+        try {
+            BaseOptions base = BaseOptions.builder()
+                    .setModelAssetPath("hand_landmarker.task") // assets에 넣기
+                    .setDelegate(BaseOptions.Delegate.GPU)
+                    .build();
+
+            HandLandmarkerOptions opts = HandLandmarkerOptions.builder()
+                    .setBaseOptions(base)
+                    .setNumHands(2)
+                    .setMinHandDetectionConfidence(0.5f)
+                    .setMinHandPresenceConfidence(0.5f)
+                    .setMinTrackingConfidence(0.5f)
+                    .setRunningMode(RunningMode.IMAGE)
+                    .build();
+
+            handLandmarker = HandLandmarker.createFromOptions(this, opts);
+        } catch (Exception e) { e.printStackTrace(); }
     }
+
+    private final VideoSink mediapipeSink = new VideoSink() {
+        @Override
+        public void onFrame(VideoFrame frame) {
+            if (isFinishing() || isDestroyed()) return;
+
+            // 과부하 방지 (샘플링)
+            if (isRunningInference) return;
+            isRunningInference = true;
+
+            VideoFrame.Buffer buffer = frame.getBuffer();
+            VideoFrame.I420Buffer i420 = buffer.toI420();
+            final int rotation = frame.getRotation();
+
+            mpExecutor.execute(() -> {
+                try {
+                    // 1) I420 -> Bitmap (간단 변환; 나중에 Camera2/ScriptIntrinsic로 최적화 가능)
+                    Bitmap bmp = i420ToBitmap(i420, rotation);
+                    // 2) Mediapipe 실행 → 126차원 피처 추출
+                    float[] feat = runMediapipeAndExtract(bmp);
+                    // 3) 30프레임 버퍼에 적재 & 전송 트리거
+                    if (feat != null) onOneFrameFeatures(feat);
+                } catch (Throwable t) {
+                    t.printStackTrace();
+                } finally {
+                    i420.release();
+                    isRunningInference = false;
+                }
+            });
+        }
+    };
 
     private boolean hasPermissions() {
         String[] permissions = {
@@ -150,6 +244,7 @@ public class CallActivity extends AppCompatActivity {
 
     private void attachLocalVideo(VideoTrack videoTrack) {
         videoTrack.addRenderer(binding.surfaceLocal);
+        videoTrack.addRenderer(mediapipeSink);
     }
 
     private void attachRemoteVideo(VideoTrack videoTrack) {

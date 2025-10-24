@@ -31,10 +31,6 @@ android {
     buildFeatures {
         viewBinding true
     }
-    aaptOptions {
-        noCompress "tflite"
-        noCompress "task"
-    }
 }
 
 dependencies {
@@ -43,9 +39,6 @@ dependencies {
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'com.google.android.material:material:1.9.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
-    implementation 'com.google.mediapipe:tasks-vision:0.20230731' // 버전 수정 필요
-    implementation 'org.tensorflow:tensorflow-lite:2.14.0' // 필요한가?
-    implementation 'org.tensorflow:tensorflow-lite-select-tf-ops:2.14.0' // 필요한가? 
     implementation 'androidx.cardview:cardview:1.0.0'
     implementation 'io.livekit:livekit-android:2.4.2'
     implementation platform('com.google.firebase:firebase-bom:33.15.0')

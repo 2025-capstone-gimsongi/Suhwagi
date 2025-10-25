@@ -4,6 +4,7 @@ import android.Manifest;
 import android.app.AlertDialog;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
@@ -11,6 +12,7 @@ import androidx.lifecycle.LifecycleOwnerKt;
 
 import com.capstone.suhwagi.databinding.ActivityCallBinding;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 
 import io.livekit.android.ConnectOptions;
@@ -112,6 +114,8 @@ public class CallActivity extends AppCompatActivity {
                 RoomCoroutinesKt.collectInScope(room.getEvents(), innerScope, (event, continuation) -> {
                     if (event instanceof RoomEvent.TrackSubscribed) {
                         onTrackSubscribed((RoomEvent.TrackSubscribed)event);
+                    } else if (event instanceof RoomEvent.DataReceived) {
+                        onDataReceived((RoomEvent.DataReceived)event);
                     }
                     return Unit.INSTANCE;
                 });
@@ -146,6 +150,13 @@ public class CallActivity extends AppCompatActivity {
         if (track instanceof VideoTrack) {
             attachRemoteVideo((VideoTrack)track);
         }
+    }
+
+    private void onDataReceived(RoomEvent.DataReceived event) {
+        byte[] data = event.getData();
+        String message = new String(data, StandardCharsets.UTF_8);
+
+        runOnUiThread(() -> Toast.makeText(getApplicationContext(), message, Toast.LENGTH_SHORT).show());
     }
 
     private void attachLocalVideo(VideoTrack videoTrack) {

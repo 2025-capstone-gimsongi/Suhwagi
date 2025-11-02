@@ -17,7 +17,6 @@ import com.google.mlkit.nl.translate.Translator;
 import com.google.mlkit.nl.translate.TranslatorOptions;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Collection;
 
 import io.livekit.android.ConnectOptions;
 import io.livekit.android.LiveKit;
@@ -25,13 +24,11 @@ import io.livekit.android.LiveKitOverrides;
 import io.livekit.android.RoomOptions;
 import io.livekit.android.events.RoomEvent;
 import io.livekit.android.room.Room;
-import io.livekit.android.room.participant.RemoteParticipant;
 import io.livekit.android.room.track.CameraPosition;
 import io.livekit.android.room.track.LocalTrackPublication;
 import io.livekit.android.room.track.LocalVideoTrack;
 import io.livekit.android.room.track.LocalVideoTrackOptions;
 import io.livekit.android.room.track.Track;
-import io.livekit.android.room.track.TrackPublication;
 import io.livekit.android.room.track.VideoPreset43;
 import io.livekit.android.room.track.VideoTrack;
 import kotlin.Unit;
@@ -143,15 +140,6 @@ public class CallActivity extends AppCompatActivity {
                     if (localPublication != null && localPublication.getTrack() instanceof LocalVideoTrack) {
                         LocalVideoTrack localTrack = (LocalVideoTrack)localPublication.getTrack();
                         attachLocalVideo(localTrack);
-                    }
-
-                    Collection<RemoteParticipant> participants = room.getRemoteParticipants().values();
-                    if (!participants.isEmpty()) {
-                        TrackPublication remotePublication = participants.iterator().next().getTrackPublication(Track.Source.CAMERA);
-                        if (remotePublication != null && remotePublication.getTrack() instanceof VideoTrack) {
-                            VideoTrack remoteTrack = (VideoTrack)remotePublication.getTrack();
-                            attachRemoteVideo(remoteTrack);
-                        }
                     }
                 }
                 return Unit.INSTANCE;

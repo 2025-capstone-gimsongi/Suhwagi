@@ -9,6 +9,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.view.View;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -18,6 +19,10 @@ import androidx.core.content.ContextCompat;
 import com.capstone.suhwagi.databinding.ActivityMainBinding;
 import com.capstone.suhwagi.databinding.DialogCallBinding;
 import com.google.android.material.textfield.TextInputLayout;
+import com.google.mlkit.nl.translate.TranslateLanguage;
+import com.google.mlkit.nl.translate.Translation;
+import com.google.mlkit.nl.translate.Translator;
+import com.google.mlkit.nl.translate.TranslatorOptions;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,7 +39,7 @@ public class MainActivity extends AppCompatActivity {
 
         requestPermissions();
 
-        binding.buttonDeafCall.setOnClickListener(v -> {
+        binding.buttonKslCall.setOnClickListener(v -> {
             String roomName = "dev-room";
 
             DialogCallBinding callBinding = DialogCallBinding.inflate(getLayoutInflater());
@@ -49,12 +54,12 @@ public class MainActivity extends AppCompatActivity {
             });
             callBinding.editRoomName.setText(roomName);
 
-            new AlertDialog.Builder(MainActivity.this)
+            new AlertDialog.Builder(this)
                 .setTitle("Room")
                 .setView(callBinding.getRoot())
                 .setPositiveButton("생성", (dialog, which) -> {
-                    Intent intent = new Intent(MainActivity.this, CallActivity.class);
-                    intent.putExtra("isDeaf", true);
+                    Intent intent = new Intent(this, CallActivity.class);
+                    intent.putExtra("language", "ko");
 
                     startActivity(intent);
                 })
@@ -63,25 +68,57 @@ public class MainActivity extends AppCompatActivity {
                 .show();
         });
 
-        binding.buttonHearingCall.setOnClickListener(v -> {
-            DialogCallBinding callBinding = DialogCallBinding.inflate(getLayoutInflater());
-            callBinding.layoutRoomName.setEndIconMode(TextInputLayout.END_ICON_NONE);
-            callBinding.editRoomName.setText("dev-room");
+        binding.buttonAslCall.setOnClickListener(v -> {
+            binding.buttonKslCall.setEnabled(false);
+            binding.buttonAslCall.setEnabled(false);
+            binding.progressDownloadModel.setVisibility(View.VISIBLE);
 
-            new AlertDialog.Builder(MainActivity.this)
-                .setTitle("Room")
-                .setView(callBinding.getRoot())
-                .setPositiveButton("참가", (dialog, which) -> {
-                    String roomName = callBinding.editRoomName.getText().toString().trim();
-                    if (roomName.isEmpty()) {
-                        Toast.makeText(getApplicationContext(), "Room 확인 실패", Toast.LENGTH_SHORT).show();
-                        return;
-                    }
+            TranslatorOptions options = new TranslatorOptions.Builder()
+                .setSourceLanguage(TranslateLanguage.KOREAN)
+                .setTargetLanguage(TranslateLanguage.ENGLISH)
+                .build();
+            Translator koreanEnglishTranslator = Translation.getClient(options);
 
-                    startActivity(new Intent(MainActivity.this, CallActivity.class));
+            koreanEnglishTranslator.downloadModelIfNeeded()
+                .addOnSuccessListener(unused -> {
+                    koreanEnglishTranslator.close();
+                    if (isFinishing() || isDestroyed()) return;
+
+                    binding.buttonKslCall.setEnabled(true);
+                    binding.buttonAslCall.setEnabled(true);
+                    binding.progressDownloadModel.setVisibility(View.INVISIBLE);
+
+                    DialogCallBinding callBinding = DialogCallBinding.inflate(getLayoutInflater());
+                    callBinding.layoutRoomName.setEndIconMode(TextInputLayout.END_ICON_NONE);
+                    callBinding.editRoomName.setText("dev-room");
+
+                    new AlertDialog.Builder(this)
+                        .setTitle("Room")
+                        .setView(callBinding.getRoot())
+                        .setPositiveButton("참가", (dialog, which) -> {
+                            String roomName = callBinding.editRoomName.getText().toString().trim();
+                            if (roomName.isEmpty()) {
+                                Toast.makeText(getApplicationContext(), "Room 확인 실패", Toast.LENGTH_SHORT).show();
+                                return;
+                            }
+
+                            Intent intent = new Intent(this, CallActivity.class);
+                            intent.putExtra("language", "en");
+
+                            startActivity(intent);
+                        })
+                        .setNegativeButton("취소", null)
+                        .show();
                 })
-                .setNegativeButton("취소", null)
-                .show();
+                .addOnFailureListener(e -> {
+                    koreanEnglishTranslator.close();
+                    Toast.makeText(getApplicationContext(), "모델 다운로드 실패", Toast.LENGTH_SHORT).show();
+                    if (isFinishing() || isDestroyed()) return;
+
+                    binding.buttonKslCall.setEnabled(true);
+                    binding.buttonAslCall.setEnabled(true);
+                    binding.progressDownloadModel.setVisibility(View.INVISIBLE);
+                });
         });
     }
 

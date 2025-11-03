@@ -177,10 +177,9 @@ public class CallActivity extends AppCompatActivity {
 
     private void showSubtitle(String message) {
         binding.textSubtitle.post(() -> {
+            binding.textSubtitle.removeCallbacks(hideSubtitleRunnable);
             binding.textSubtitle.setText(message);
             binding.textSubtitle.setVisibility(View.VISIBLE);
-
-            binding.textSubtitle.removeCallbacks(hideSubtitleRunnable);
             binding.textSubtitle.postDelayed(hideSubtitleRunnable, 5000);
         });
     }

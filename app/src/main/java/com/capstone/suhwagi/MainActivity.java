@@ -60,11 +60,11 @@ public class MainActivity extends AppCompatActivity {
                 .setPositiveButton("생성", (dialog, which) -> {
                     Intent intent = new Intent(this, CallActivity.class);
                     intent.putExtra("language", "ko");
+                    intent.putExtra("token", DevTokenIssuer.createToken("ksl", roomName));
 
                     startActivity(intent);
                 })
                 .setNegativeButton("취소", null)
-                .setCancelable(false)
                 .show();
         });
 
@@ -72,6 +72,9 @@ public class MainActivity extends AppCompatActivity {
             binding.buttonKslCall.setEnabled(false);
             binding.buttonAslCall.setEnabled(false);
             binding.progressDownloadModel.setVisibility(View.VISIBLE);
+
+            Toast toast = Toast.makeText(getApplicationContext(), "번역 모델 로드 중...", Toast.LENGTH_LONG);
+            toast.show();
 
             TranslatorOptions options = new TranslatorOptions.Builder()
                 .setSourceLanguage(TranslateLanguage.KOREAN)
@@ -82,6 +85,7 @@ public class MainActivity extends AppCompatActivity {
             koreanEnglishTranslator.downloadModelIfNeeded()
                 .addOnSuccessListener(unused -> {
                     koreanEnglishTranslator.close();
+                    toast.cancel();
                     if (isFinishing() || isDestroyed()) return;
 
                     binding.buttonKslCall.setEnabled(true);
@@ -104,6 +108,7 @@ public class MainActivity extends AppCompatActivity {
 
                             Intent intent = new Intent(this, CallActivity.class);
                             intent.putExtra("language", "en");
+                            intent.putExtra("token", DevTokenIssuer.createToken("asl", roomName));
 
                             startActivity(intent);
                         })
@@ -112,6 +117,7 @@ public class MainActivity extends AppCompatActivity {
                 })
                 .addOnFailureListener(e -> {
                     koreanEnglishTranslator.close();
+                    toast.cancel();
                     Toast.makeText(getApplicationContext(), "모델 다운로드 실패", Toast.LENGTH_SHORT).show();
                     if (isFinishing() || isDestroyed()) return;
 

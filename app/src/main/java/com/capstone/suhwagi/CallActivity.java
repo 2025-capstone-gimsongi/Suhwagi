@@ -2,6 +2,7 @@ package com.capstone.suhwagi;
 
 import android.Manifest;
 import android.app.AlertDialog;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.view.View;
@@ -40,8 +41,6 @@ import kotlinx.coroutines.Dispatchers;
 
 public class CallActivity extends AppCompatActivity {
     private static final String SERVER_URL = "ws://10.0.2.2:7880";
-    private static final String KSL_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ2aWRlbyI6eyJyb29tQ3JlYXRlIjp0cnVlLCJyb29tSm9pbiI6dHJ1ZSwicm9vbSI6ImRldi1yb29tIiwiY2FuUHVibGlzaCI6dHJ1ZSwiY2FuU3Vic2NyaWJlIjp0cnVlLCJjYW5QdWJsaXNoRGF0YSI6dHJ1ZX0sInN1YiI6ImtzbCIsImlzcyI6ImRldmtleSIsIm5iZiI6MTc1Njg2MTIwMCwiZXhwIjo0OTEyNTM0ODAwfQ.7Kt3EBHImTXlhsPNSn5Vt8O1e0Te-vHu4xgut7Gnad8";
-    private static final String ASL_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ2aWRlbyI6eyJyb29tQ3JlYXRlIjp0cnVlLCJyb29tSm9pbiI6dHJ1ZSwicm9vbSI6ImRldi1yb29tIiwiY2FuUHVibGlzaCI6dHJ1ZSwiY2FuU3Vic2NyaWJlIjp0cnVlLCJjYW5QdWJsaXNoRGF0YSI6dHJ1ZX0sInN1YiI6ImFzbCIsImlzcyI6ImRldmtleSIsIm5iZiI6MTc1Njg2MTIwMCwiZXhwIjo0OTEyNTM0ODAwfQ.mlaMQwuEtiNVJIyMvrhar_g11npSuBKJb5euPcI3XYE";
 
     private ActivityCallBinding binding;
     private Runnable hideSubtitleRunnable;
@@ -68,20 +67,20 @@ public class CallActivity extends AppCompatActivity {
             return;
         }
 
-        initRoom();
+        Intent intent = getIntent();
+        language = intent.getStringExtra("language");
 
-        language = getIntent().getStringExtra("language");
-        if (language.equals("ko")) {
-            joinRoom(KSL_TOKEN);
-        } else if (language.equals("en")) {
+        if (language.equals("en")) {
             TranslatorOptions options = new TranslatorOptions.Builder()
                 .setSourceLanguage(TranslateLanguage.KOREAN)
                 .setTargetLanguage(TranslateLanguage.ENGLISH)
                 .build();
             koreanEnglishTranslator = Translation.getClient(options);
-
-            joinRoom(ASL_TOKEN);
         }
+        initRoom();
+
+        String token = intent.getStringExtra("token");
+        joinRoom(token);
     }
 
     private boolean hasPermissions() {

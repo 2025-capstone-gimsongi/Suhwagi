@@ -107,15 +107,12 @@ public class CallActivity extends AppCompatActivity {
     }
 
     private void initRenderers() {
-        room.initVideoRenderer(binding.surfaceLocal);
-        binding.surfaceLocal.setZOrderMediaOverlay(true);
-        binding.surfaceLocal.setZOrderOnTop(true);
-        binding.surfaceLocal.setEnableHardwareScaler(true);
-        binding.surfaceLocal.setMirror(true);
+        room.initVideoRenderer(binding.textureLocal);
+        binding.textureLocal.setEnableHardwareScaler(true);
+        binding.textureLocal.setMirror(true);
 
-        room.initVideoRenderer(binding.surfaceRemote);
-        binding.surfaceRemote.setZOrderOnTop(true);
-        binding.surfaceRemote.setEnableHardwareScaler(true);
+        room.initVideoRenderer(binding.textureRemote);
+        binding.textureRemote.setEnableHardwareScaler(true);
     }
 
     private void joinRoom(String token) {
@@ -167,11 +164,11 @@ public class CallActivity extends AppCompatActivity {
     }
 
     private void attachLocalVideo(VideoTrack videoTrack) {
-        videoTrack.addRenderer(binding.surfaceLocal);
+        videoTrack.addRenderer(binding.textureLocal);
     }
 
     private void attachRemoteVideo(VideoTrack videoTrack) {
-        videoTrack.addRenderer(binding.surfaceRemote);
+        videoTrack.addRenderer(binding.textureRemote);
     }
 
     private void showSubtitle(String message) {
@@ -188,8 +185,8 @@ public class CallActivity extends AppCompatActivity {
         super.onDestroy();
 
         binding.textSubtitle.removeCallbacks(hideSubtitleRunnable);
-        binding.surfaceLocal.release();
-        binding.surfaceRemote.release();
+        binding.textureLocal.release();
+        binding.textureRemote.release();
 
         if (room != null) {
             room.disconnect();
